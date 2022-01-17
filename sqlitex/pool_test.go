@@ -302,3 +302,65 @@ func TestPoolOpenInit(t *testing.T) {
 		t.Fatal("a cancelled context should interrupt initialization")
 	})
 }
+
+func TestPoolOpenInitWithTx(t *testing.T) {
+	ctx := context.Background()
+	initScript := `PRAGMA foreign_keys=ON;`
+	dbpool, err := sqlitex.OpenInitWithOpts(ctx, poolURI, poolFlags, poolSize, initScript, sqlitex.ExecScriptOpts{
+		SkipTx: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := dbpool.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	checkFn := func(stmt *sqlite.Stmt) error {
+		if fk := stmt.ColumnInt(0); fk == 1 {
+			t.Fatalf("initScript run: PRAGMA foreign_keys returns %d, expected 0 (to fail)", fk)
+		}
+		return nil
+	}
+
+	for i := 0; i < poolSize; i++ {
+		conn := dbpool.Get(ctx)
+		defer dbpool.Put(conn)
+		if err := sqlitex.ExecTransient(conn, "PRAGMA foreign_keys;", checkFn); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestPoolOpenInitWithNoTx(t *testing.T) {
+	ctx := context.Background()
+	initScript := `PRAGMA foreign_keys=ON;`
+	dbpool, err := sqlitex.OpenInitWithOpts(ctx, poolURI, poolFlags, poolSize, initScript, sqlitex.ExecScriptOpts{
+		SkipTx: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := dbpool.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	checkFn := func(stmt *sqlite.Stmt) error {
+		if fk := stmt.ColumnInt(0); fk != 1 {
+			t.Fatalf("initScript not run: PRAGMA foreign_keys returns %d, expected 1", fk)
+		}
+		return nil
+	}
+
+	for i := 0; i < poolSize; i++ {
+		conn := dbpool.Get(ctx)
+		defer dbpool.Put(conn)
+		if err := sqlitex.ExecTransient(conn, "PRAGMA foreign_keys;", checkFn); err != nil {
+			t.Error(err)
+		}
+	}
+}

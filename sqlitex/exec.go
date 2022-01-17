@@ -172,9 +172,23 @@ func annotateErr(err error) error {
 // ExecScript executes a script of SQL statements.
 //
 // The script is wrapped in a SAVEPOINT transaction,
-// which is rolled back on any error.
+// which is rolled back on any error. To disable the SAVEPOINT
+// use ExecScriptWithOpts and set SkipTx to true.
+
+type ExecScriptOpts struct {
+	SkipTx bool
+}
+
 func ExecScript(conn *sqlite.Conn, queries string) (err error) {
-	defer Save(conn)(&err)
+	return ExecScriptWithOpts(conn, queries, ExecScriptOpts{
+		SkipTx: false,
+	})
+}
+
+func ExecScriptWithOpts(conn *sqlite.Conn, queries string, opts ExecScriptOpts) (err error) {
+	if !opts.SkipTx {
+		defer Save(conn)(&err)
+	}
 
 	for {
 		queries = strings.TrimSpace(queries)

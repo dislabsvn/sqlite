@@ -89,7 +89,20 @@ func Open(uri string, flags sqlite.OpenFlags, poolSize int) (pool *Pool, err err
 // that running it multiple times is the same as running it once. For example
 // do not run INSERT in any of the initScripts or else it may create duplicate
 // data unintentionally or fail.
+
 func OpenInit(ctx context.Context, uri string, flags sqlite.OpenFlags, poolSize int, initScript string) (pool *Pool, err error) {
+	return OpenInitWithOpts(ctx, uri, flags, poolSize, initScript, ExecScriptOpts{
+		SkipTx: false,
+	})
+}
+
+// OpenInitWithOpts opens a fixed-size pool of SQLite connections, each initialized
+// with initScript. The SkipTx flag specifies whether a save point is used to enable
+// a transaction around each initScript execution.
+//
+// See OpenInit docs for more informaiton on the api behaviour.
+
+func OpenInitWithOpts(ctx context.Context, uri string, flags sqlite.OpenFlags, poolSize int, initScript string, opts ExecScriptOpts) (pool *Pool, err error) {
 	if uri == ":memory:" {
 		return nil, strerror{msg: `sqlite: ":memory:" does not work with multiple connections, use "file::memory:?mode=memory"`}
 	}
@@ -129,7 +142,7 @@ func OpenInit(ctx context.Context, uri string, flags sqlite.OpenFlags, poolSize 
 
 		if initScript != "" {
 			conn.SetInterrupt(ctx.Done())
-			if err := ExecScript(conn, initScript); err != nil {
+			if err := ExecScriptWithOpts(conn, initScript, opts); err != nil {
 				return nil, err
 			}
 			conn.SetInterrupt(nil)
