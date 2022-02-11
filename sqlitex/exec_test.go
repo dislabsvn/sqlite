@@ -19,8 +19,8 @@ import (
 	"reflect"
 	"testing"
 
-	"crawshaw.io/sqlite"
-	"crawshaw.io/sqlite/sqlitex"
+	"github.com/dislabsvn/sqlite"
+	"github.com/dislabsvn/sqlite/sqlitex"
 )
 
 func TestExec(t *testing.T) {

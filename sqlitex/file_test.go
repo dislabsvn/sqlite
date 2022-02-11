@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"crawshaw.io/iox/ioxtest"
-	"crawshaw.io/sqlite"
+	"github.com/dislabsvn/sqlite"
 )
 
 func TestFileRand(t *testing.T) {

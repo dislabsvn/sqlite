@@ -1,4 +1,4 @@
-module crawshaw.io/sqlite
+module github.com/dislabsvn/sqlite
 
 go 1.12
 
